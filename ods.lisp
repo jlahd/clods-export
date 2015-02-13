@@ -149,42 +149,6 @@
       (with-open-file (f (cdr file) :direction :input :element-type '(unsigned-byte 8))
 	(zip:write-zipentry zip (car file) f)))))
 
-(defclass style ()
-  ((key :initarg :key :type string :reader style-key)
-   (font-size :initarg :font-size :type string :reader style-font-size)
-   (font-weight :initarg :font-weight :type string :reader style-font-weight)
-   (font-style :initarg :font-style :type string :reader style-font-style)
-   (underline :initarg :underline :type string :reader style-underline)
-   (color :initarg :color :type string :reader style-color)
-   (border :initarg :border :type vector :reader style-border)))
-
-(defclass row-style (style)
-  ())
-
-(defclass column-style (style)
-  ())
-
-(defclass cell-style (style)
-  ())
-
-(defclass column ()
-  ((index :initarg :index :type fixnum :reader col-index)
-   (width :initarg :width :type string :reader col-width)
-   (style :initarg :style :type style :reader col-style)))
-
-(defgeneric to-xml (obj))
-(defmethod to-xml ((obj style))
-  (with-tag (*ns-style* "style")
-    (attr (*ns-style* "name") (style-key obj))
-    (attr (*ns-style* "family") (case (style-type obj)
-				  (:row "table-row")
-				  (:column "table-column")
-				  (:cell "table-cell")))
-    (when (some (alexandria:curry #'slot-boundp obj)
-		'(style-font-size style-font-weight style-font-style
-		  style-underline style-color style-border))
-      (with-tag (*ns-style* "text-properties")))))
-
 (defun kw-to-string (kw &optional allowed)
   (check-type kw keyword)
   (cond ((and allowed (listp (first allowed)))
@@ -566,10 +530,13 @@
       (tag (*ns-number* "text") suffix))))
 
 (defmacro defstyle (name (&rest args) &body body)
-  `(defun ,name ,(append args '(parent-style next-style data-style percentage-data-style))
+  `(defun ,(if (listp name) (first name) name)
+       ,(append args '(parent-style next-style data-style percentage-data-style))
      (with-tag ((*ns-style* "style"))
        (attr (*ns-style* "name") name)
-       (attr (*ns-style* "family") ,(string-downcase (subseq (symbol-name name) 0 (position #\- (symbol-name name)))))
+       (attr (*ns-style* "family") ,(if (listp name)
+					(second name)
+					(string-downcase (subseq (symbol-name name) 0 (position #\- (symbol-name name))))))
        (when parent-style
 	 (attr (*ns-style* "parent-style-name") parent-style))
        (when next-style
@@ -608,7 +575,7 @@
     (write-background background)))
 
 (export 'column-style)
-(defstyle column-style (name &key width rel-width (use-optimal-width nil opt-width-supplied))
+(defstyle (column-style "table-column") (name &key width rel-width (use-optimal-width nil opt-width-supplied))
   (with-tag ((*ns-style* "table-column-properties"))
     (when width
       (check-type width string)
@@ -620,7 +587,7 @@
       (attr (*ns-style* "use-optimal-column-width") (if use-optimal-width "true" "false")))))
 
 (export 'row-style)
-(defstyle row-style (name &key height min-height (use-optimal-height nil opt-height-supplied) background)
+(defstyle (row-style "table-row") (name &key height min-height (use-optimal-height nil opt-height-supplied) background)
   (with-tag ((*ns-style* "table-row-properties"))
     (when height
       (check-type height string)
@@ -633,9 +600,9 @@
     (write-background background)))
 
 (export 'cell-style)
-(defstyle cell-style (name text-properties &key vertical-align text-align-source background
-			   border border-left border-top border-right border-bottom
-			   (wrap nil wrap-supplied))
+(defstyle (cell-style "table-cell") (name text-properties &key vertical-align text-align-source background
+					  border border-left border-top border-right border-bottom
+					  (wrap nil wrap-supplied))
   (with-tag ((*ns-style* "table-cell-properties"))
     (when vertical-align
       (check-type vertical-align (member :top :middle :bottom :automatic))
@@ -780,6 +747,6 @@
     (error "span-rows not implemented properly yet")))
 
 (export 'cells)
-(defun cells (&rest content)
+(defun cells (content &rest options)
   (dolist (i content)
-    (cell i)))
+    (apply #'cell i options)))
