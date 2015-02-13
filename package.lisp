@@ -1,3 +1,3 @@
 (cl:defpackage :clods-export
   (:nicknames #:clods)
-  (:use #:cl #:xmlw))
+  (:use #:cl #:iterate #:xmlw))
