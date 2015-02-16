@@ -19,6 +19,6 @@
 		 (:file "util")
 		 (:file "ods" :depends-on ("package" "fix-zip" "namespaces" "util"))
 		 (:file "fonts" :depends-on ("ods"))
-		 (:file "styles" :depends-on ("ods"))
-		 (:file "text" :depends-on ("ods"))
+		 (:file "text" :depends-on ("ods" "fonts"))
+		 (:file "styles" :depends-on ("ods" "text"))
 		 (:file "content" :depends-on ("ods"))))))
