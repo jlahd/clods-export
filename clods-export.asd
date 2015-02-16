@@ -14,5 +14,11 @@
   ((:module clods
     :pathname ""
     :components ((:file "package")
-		 (:file "ods" :depends-on ("package"))
-		 (:file "fix-zip")))))
+		 (:file "fix-zip")
+		 (:file "namespaces")
+		 (:file "util")
+		 (:file "ods" :depends-on ("package" "fix-zip" "namespaces" "util"))
+		 (:file "fonts" :depends-on ("ods"))
+		 (:file "styles" :depends-on ("ods"))
+		 (:file "text" :depends-on ("ods"))
+		 (:file "content" :depends-on ("ods"))))))
