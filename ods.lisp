@@ -237,12 +237,16 @@
      (setf *sheet-state* :fonts-defined)))
 
 (export 'font)
-(defun font (name &key family style weight size variant stretch)
+(defun font (name &key adornments family family-generic style weight size variant stretch)
   (unless (eq *sheet-state* :with-fonts)
     (error "font must be called in the context of a with-fonts form"))
   (with-tag ((*ns-style* "font-face"))
     (attr (*ns-style* "name") name)
+    (when adornments
+      (check-type adornments string)
+      (attr *ns-svg* "font-adornments") adornments)
     (when family (attr (*ns-svg* "font-family") family))
+    (when family-generic (attr (*ns-svg* "font-family") (kw-to-string family-generic '(:roman :swiss :modern :decorative :script :system))))
     (when style (attr (*ns-svg* "font-style") (kw-to-string style '(:normal :italic :oblique))))
     (when weight (attr (*ns-svg* "font-weight")
 		       (if (numberp weight)
@@ -481,10 +485,11 @@
 			(field (and dash (string-downcase (subseq sym (1+ dash))))))
 		   (unless (and dash
 				(find style '("long" "short") :test #'string=)
-				(or (find field '("hours" "minutes" "seconds" "am-pm"))
+				(or (find field '("hours" "minutes" "seconds" "am-pm") :test #'string=)
 				    (and date-p
 					 (find field '("day" "month" "year" "era"
-						       "day-of-week" "week-of-year" "quarter")))))
+						       "day-of-week" "week-of-year" "quarter")
+					       :test #'string=))))
 		     (error "invalid date/time field: ~s" i))
 		   (with-tag ((*ns-number* field)) (attr (*ns-number* "style") style))))))))
 
@@ -600,7 +605,8 @@
     (write-background background)))
 
 (export 'cell-style)
-(defstyle (cell-style "table-cell") (name text-properties &key vertical-align text-align-source background
+(defstyle (cell-style "table-cell") (name text-properties
+					  &key horizontal-align vertical-align text-align-source background
 					  border border-left border-top border-right border-bottom
 					  (wrap nil wrap-supplied))
   (with-tag ((*ns-style* "table-cell-properties"))
@@ -632,7 +638,11 @@
     (when wrap-supplied
       (attr (*ns-fo* "wrap-option") (if wrap "wrap" "no-wrap"))))
   (when text-properties
-    (write-text-properties text-properties)))
+    (write-text-properties text-properties))
+  (when horizontal-align
+    (check-type horizontal-align (member :start :center :end :justify :left :right))
+    (with-tag ((*ns-style* "paragraph-properties"))
+      (attr (*ns-fo* "text-align") (string-downcase horizontal-align)))))
 
 
 (export 'with-body)
@@ -650,17 +660,18 @@
 
 (export 'with-table)
 (defmacro with-table ((name) &body body)
-  `(progn
-     (unless (find *sheet-state* '(:spreadsheet :table-seen))
-       (error "with-table must be a child of a with-body form"))
-     ,(unless (typep name 'string)
-	`(check-type ,name string))
-     (with-tag ((*ns-table* "table"))
-       (attr (*ns-table* "name") ,name)
-       (tag (*ns-table* "title") ,name)
-       (let ((*sheet-state* :table))
-	 ,@body)
-       (setf *sheet-state* :table-seen))))
+  (alexandria:with-gensyms (nsym)
+    `(let ((,nsym ,name))
+       (unless (find *sheet-state* '(:spreadsheet :table-seen))
+	 (error "with-table must be a child of a with-body form"))
+       ,(unless (typep name 'string)
+		`(check-type ,nsym string))
+       (with-tag ((*ns-table* "table"))
+	 (attr (*ns-table* "name") ,nsym)
+	 (tag (*ns-table* "title") ,nsym)
+	 (let ((*sheet-state* :table))
+	   ,@body)
+	 (setf *sheet-state* :table-seen)))))
 
 (export 'with-header-columns)
 (defmacro with-header-columns (() &body body)
@@ -716,8 +727,8 @@
 					   (typecase (or raw-value content)
 					     (real "float")
 					     (t "string"))))
-      (unless (or (eq value-type :string)
-		  (stringp (or raw-value content)))
+      (unless (or (null value-type)
+		  (eq value-type :string))
 	(attr (*ns-office* (case (or value-type :float)
 			     ((:float :percentage :currency) "value")
 			     (:date "date-value")
