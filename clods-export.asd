@@ -12,7 +12,7 @@
   :depends-on (alexandria iterate xmlw zip cl-fad)
   :components
   ((:module clods
-    :pathname ""
+    :pathname "src"
     :components ((:file "package")
 		 (:file "fix-zip")
 		 (:file "namespaces")
