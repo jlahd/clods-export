@@ -131,33 +131,25 @@ supported:
 * `:min-integer-digits` specifies the minimum number of digits in the
   integer part of the number.  Supported by all number
   representations.
-
 * `:decimal-places` specifies the minimum number of decimal digits
   after the decimal separator.  Supported by standard and scientific
   numbers.
-
 * `:decimal-replacement` specifies the string to be added (instead of
   zeros) as the decimal part of an integer number, if
   `:decimal-places` is specified as well.
-
 * `:display-factor` scales down the number for displaying.  Supported
   by standard numbers only.
-
 * `:number-grouping` groups the integer part of the number according
   to the locale.  Supported by standard numbers only.
-
 * `:min-exponent-digits` specifies the minimum number of exponent
   digits to be shown.  Supported by scientific numbers only; adding
   this flag forces scientific representation.
-
 * `:denominator-value` forces the use of a specific denominator in the
   fraction.  Supported by fractions only; adding this flag forces
   fractional representation.
-
 * `:min-denominator-digits` specifies the minimum number of digits on
   the denominator of the fractional number.  Supported by fractions
   only; adding this flag forces fractional representation.
-
 * `:min-numerator-digits` specifies the minimum number of digits on
   the numerator of the fractional number.  Supported by fractions
   only; adding this flag forces fractional representation.
@@ -179,7 +171,6 @@ that contains text property definitions).
   data that must be one of the keywords `:true` and `:false` into the
   textual representations given on the `true` and `false` (string)
   arguments.  An optional prefix or suffix can be added.
-
 * `(number-time-style name format)` formats a `local-time:timestamp`
   into a textual representation given in `format`.  `format` must be a
   list that contains strings (which will be formatted as such) and
@@ -189,7 +180,6 @@ that contains text property definitions).
   formatted in 12-hour format, otherwise in 24-hour format.  The
   `long` versions will format the data in two digits, `short` versions
   using one or two digits.
-
 * `(number-date-style name format)` formats a `local-time:timestamp`
   in a similar manner to the `number-time-style`.  All the formatting
   directives specified above work here as well, with the addition of
@@ -199,18 +189,15 @@ that contains text property definitions).
   `:short-week-of-year`, `:long-week-of-year`, `:short-quarter` and
   `:long-quarter`.  However, `clods-export` does not currently support
   formatting era, day-of-week and week-of-year.
-
 * `(number-number-style name format &key prefix suffix)` is the main
   number formatting facility.  The `format` argument is a list as
   defined above in the Number formatting section.  Additionally,
   arbitrary strings given in the `prefix` and `suffix` arguments can
   be prefixed or appended to the formatting result.
-
 * `(number-percentage-style name format &key prefix suffix)` formats a
   number as a percentage value.  In essence, this means that the value
   is multiplied by 100 before being displayed.  Also, `suffix`
   defaults to the string " %".
-
 * `(number-currency-style name format)` formats a number as a monetary
   value.  The format here is a list of keyword-value pairs.  The
   keyword `:number` precedes a list that specifies number formatting
@@ -218,7 +205,6 @@ that contains text property definitions).
   `:text` should be followed by strings that are printed verbatim.
   The difference between `:symbol` and `:text` values is semantic;
   visually, they produce similar results.
-
 * `(number-text-style name &key prefix suffix)` simply formats a
   string input by preceding it with the optional prefix and appending
   the optional suffix.
@@ -320,9 +306,8 @@ columns/rows groups is optional and has no visual effect on the table.
 `(clods:column &key repeat style visibility cell-style)`
 
 * If the `:repeat` argument is specified, the column is repeated the
-specified number of times, making it easy to define a table with many
-similarly formatted columns.
-
+  specified number of times, making it easy to define a table with many
+  similarly formatted columns.
 * `:style` refers to a previously defined `column-style`.
 * `:visibility` is one of `:visible`, `:collapse` and `:filter`.
 * `:cell-style` refers to a previously defined `cell-style`, and defines
