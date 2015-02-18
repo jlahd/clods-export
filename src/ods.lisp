@@ -66,6 +66,9 @@
 Various forms appearing in a with-spreadsheet form must be specified
 in the correct order; if the order is violated, an error is signalled.")
 
+(defvar *styles* nil
+  "A dictionary of all defined styles in the document.")
+
 (defmacro with-spreadsheet ((file &key (generator "clods") (creator "clods")) &body body)
   "The main interface macro for CLODS-EXPORT.
 Creates a ODS document out of the body of the form and stores it into
@@ -82,7 +85,8 @@ creator are written in the document's metadata."
 			      (with-tag ((*ns-office* "document-content"))
 				(add-ods-namespaces)
 				(attr (*ns-office* "version") "1.2")
-				(let ((*sheet-state* :start))
+				(let ((*sheet-state* :start)
+				      (*styles* (make-hash-table :test 'equal)))
 				  ,@body
 				  (unless (eq *sheet-state* :end)
 				    (error "no data on spreadsheet - a with-body form is required")))))))

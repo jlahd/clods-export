@@ -42,7 +42,7 @@ The font can be referenced in style definition using the given name."
       (check-type adornments string)
       (attr *ns-svg* "font-adornments") adornments)
     (when family (attr (*ns-svg* "font-family") family))
-    (when family-generic (attr (*ns-svg* "font-family") (kw-to-string family-generic *font-generic-families*)))
+    (when family-generic (attr (*ns-svg* "font-family-generic") (kw-to-string family-generic *font-generic-families*)))
     (when style (attr (*ns-svg* "font-style") (kw-to-string style *font-styles*)))
     (when weight (attr (*ns-svg* "font-weight")
 		       (if (numberp weight)

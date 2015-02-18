@@ -9,7 +9,7 @@
   :license "MIT"
   :description "Common Lisp OpenDocument spreadsheet export library"
   :encoding :utf-8
-  :depends-on (alexandria iterate xmlw zip cl-fad)
+  :depends-on (alexandria iterate local-time xmlw zip cl-fad)
   :components
   ((:module clods
     :pathname "src"
@@ -17,8 +17,10 @@
 		 (:file "fix-zip")
 		 (:file "namespaces")
 		 (:file "util")
+		 (:file "locale")
 		 (:file "ods" :depends-on ("package" "fix-zip" "namespaces" "util"))
 		 (:file "fonts" :depends-on ("ods"))
 		 (:file "text" :depends-on ("ods" "fonts"))
+		 (:file "numbers" :depends-on ("ods" "locale"))
 		 (:file "styles" :depends-on ("ods" "text"))
 		 (:file "content" :depends-on ("ods"))))))

@@ -28,11 +28,22 @@ A valid color is a six-digit hexadecimal number preceded by a #."
        t))
 
 (defun princ-number (num)
-  "princ-to-string a number, removing the trailing D0 in case of a double."
-  (let* ((str (princ-to-string num))
-	 (len (length str)))
-    (if (and (> len 2)
-	     (char= #\D (char-upcase (char str (- len 2))))
-	     (char= #\0 (char str (- len 1))))
-	(subseq str 0 (- len 2))
+  "princ-to-string a number, enforcing a decimal, non-exponential form."
+  (let* ((str (etypecase num
+		(integer (princ-to-string num))
+		(rational (format nil "~,100f" (coerce num 'double-float)))
+		(real (format nil "~,100f" num))))
+	 (dot (position #\. str)))
+    (if dot
+	(subseq str 0 (1+ (max (position-if-not (alexandria:curry #'char= #\0) str :from-end t)
+			       (1+ dot))))
 	str)))
+
+(defun remove-nsec (time)
+  "Remove the nanoseconds part from a local-time generated timestring,
+e.g. \"2015-02-18T08:07:02.000000Z\" to \"2015-02-18T08:07:02Z\""
+  (let ((zeros (search ".000000" time)))
+    (if zeros
+	(concatenate 'string (subseq time 0 zeros) (subseq time (+ zeros 7)))
+	time)))
+

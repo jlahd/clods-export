@@ -1,5 +1,15 @@
 (in-package :clods-export)
 
+(defvar *columns* nil
+  "The set of columns defined for the current document.")
+
+(defvar *last-column* nil
+  "Pointer to the last cons cell of the columns list, to facilitate appending of new columns.")
+
+(defclass column ()
+  ((style :initform nil :initarg :style :reader col-style)
+   (repeat :initform 1 :initarg :repeat :reader col-repeat)))
+
 (defmacro with-body (() &body body)
   "This form encloses the actual content of the spreadsheet document.
 The document consists of 1 to n tables that are written with the with-table macro."
@@ -25,7 +35,9 @@ The document consists of 1 to n tables that are written with the with-table macr
        (with-tag ((*ns-table* "table"))
 	 (attr (*ns-table* "name") ,nsym)
 	 (tag (*ns-table* "title") ,nsym)
-	 (let ((*sheet-state* :table))
+	 (let ((*sheet-state* :table)
+	       (*columns* nil)
+	       (*last-column* nil))
 	   ,@body)
 	 (setf *sheet-state* :table-seen)))))
 
@@ -40,7 +52,7 @@ They do not have a visual effect, but may carry a semantic meaning."
   "Helper function for writing out attributes that are common to rows and columns."
   (when repeat
     (check-type repeat (integer 1 *))
-    (attr (*ns-table* "number-columns-repeated") repeat))
+    (attr (*ns-table* "number-columns-repeated") (princ-to-string repeat)))
   (when style
     (check-type style string)
     (attr (*ns-table* "style-name") style))
@@ -56,7 +68,14 @@ They do not have a visual effect, but may carry a semantic meaning."
   (unless (find *sheet-state* '(:columns-only :table))
     (error "Columns must be defined inside a with-table form, and all columns must be defined before the first row."))
   (with-tag ((*ns-table* "table-column"))
-    (write-col-row-attrs repeat style visibility cell-style)))
+    (write-col-row-attrs repeat style visibility cell-style))
+  (let ((col (make-instance 'column :style cell-style :repeat (or repeat 1))))
+    (if *last-column*
+	(setf (cdr *last-column*) (list col)
+	      *last-column* (cdr *last-column*))
+	(setf *columns* (list col)
+	      *last-column* *columns*)))
+  t)
 
 (defmacro with-header-rows (() &body body)
   "Header rows may be grouped together with this form.
@@ -68,6 +87,12 @@ They do not have a visual effect, but may carry a semantic meaning."
        (setf *sheet-state* :rows-only)
        ,@body)))
 
+(defvar *current-column* nil
+  "Track the current column when filling in data.")
+
+(defvar *current-row-style* nil
+  "Holds the default style specified for the current row.")
+
 (defmacro with-row ((&key repeat style visibility cell-style) &body body)
   "Encloses a single row (or several similar, if the repeat arugment is used) on the table."
   `(progn
@@ -75,70 +100,124 @@ They do not have a visual effect, but may carry a semantic meaning."
        (error "Rows must be defined inside a with-table form"))
      (with-tag ((*ns-table* "table-row"))
        (write-col-row-attrs ,repeat ,style ,visibility ,cell-style)
-       (let ((*sheet-state* :cells-only))
-	 ,@body))))
+       (multiple-value-prog1
+	   (let ((*sheet-state* :cells-only)
+		 (*current-column* (list *columns* 0))
+		 (*current-row-style* ,cell-style))
+	     ,@body)
+	 (setf *sheet-state* :rows-only)))))
 
-(defun cell (content &key style formula span-columns span-rows link value-type raw-value)
+(defun cell (content &key style formula span-columns span-rows link)
   "Write out the contents of a data cell.
-The cell may span several columns or rows, and it can contain a formula or formatted data.
-ODS supports a fixed set of data types that are reflected in the choice for the value-type argument:
-* :float - all numbers, also integers, are floats; raw-value should be a real.
-* :percentage - much like :float; semantic difference only.
-* :currency - as above, semantic difference to :float only.
-* :date - raw-value should be an ISO8601 formatted date.
-* :time - raw-value should be an ISO8601 formatted time.
-* :boolean - raw-value should be \"true\" or \"false\".
-* :string - raw-value not needed, content is the string."
+
+The cell may span several columns or rows, and it can contain a
+formula or formatted data.  The content is formatted according to the
+chosen data style (first cell style; if not specified, current row
+style; if not specified, current column style; if not specified, an
+error is signalled unless content is a string).
+
+The following content types are supported:
+* _real_ maps to ODS float, currency, or percentage type, according to the chosen style.
+* _local-time:timestamp_ maps to ODS date or time type, according to the chosen style.
+* the keywords :true and :false map to the ODS boolean type
+* _string_ is the content as-is, without formatting or numeric value."
   (unless (eq *sheet-state* :cells-only)
     (error "All cells must be defined inside with-row forms."))
-  (when content
-    (check-type content string))
-  (with-tag ((*ns-table* "table-cell"))
-    (when style
-      (check-type style string)
-      (attr (*ns-table* "style-name") style))
-    (when formula
-      (check-type formula string)
-      (attr (*ns-table* "formula") formula))
-    (when (or content raw-value)
-      (when value-type
-	(check-type value-type (member :float :percentage :currency :date :time :boolean :string)))
-      (attr (*ns-office* "value-type") (if value-type
-					   (string-downcase value-type)
-					   (typecase (or raw-value content)
-					     (real "float")
-					     (t "string"))))
-      (unless (or (null value-type)
-		  (eq value-type :string))
-	(attr (*ns-office* (case (or value-type :float)
-			     ((:float :percentage :currency) "value")
-			     (:date "date-value")
-			     (:time "time-value")
-			     (:boolean "boolean-value")))
-	      (cond ((realp raw-value)
-		     (princ-number raw-value))
-		    (raw-value
-		     (princ-to-string raw-value))
-		    (content)))))
-    (when (or span-columns span-rows)
-      (check-type span-columns (or null (integer 1 *)))
-      (check-type span-rows (or null (integer 1 *)))
-      (attr (*ns-table* "number-columns-spanned") (princ-to-string (or span-columns 1)))
-      (attr (*ns-table* "number-rows-spanned") (princ-to-string (or span-rows 1))))
-    (when content
-      (with-tag ((*ns-text* "p") :compact t)
-	(if link
-	    (with-tag ((*ns-text* "a"))
-	      (attr (*ns-xlink* "href") link)
-	      (content content))
-	    (content content)))))
-  (when (and span-columns (> span-columns 1))
-    (dotimes (i (1- span-columns))
-      (tag (*ns-table* "covered-table-cell"))))
-  (when (and span-rows (> span-rows 1))
-    (error "span-rows not implemented properly yet")))
+  (let* ((style-name (or style *current-row-style*
+			 (and *current-column* (col-style (first (first *current-column*))))))
+	 (style (gethash style-name *styles*))
+	 (data-style-name (and style (slot-value style 'data-style)))
+	 (data-style (or (gethash data-style-name *styles*) *default-data-style*)))
+    ;; Advance the current column counter
+    (when *current-column*
+      (when (>= (incf (second *current-column*))
+		(col-repeat (first (first *current-column*))))
+	(setf (first *current-column*) (rest (first *current-column*))
+	      (second *current-column*) 0)
+	(unless (first *current-column*)
+	  (setf *current-column* nil))))
+    ;; Verify that a valid style has been specified, and there is a
+    ;; mapping to a data style
+    (when (and style-name (not style))
+      (error "Unknown style: ~s" style-name))
+    (when (and data-style-name (eq data-style *default-data-style*))
+      (error "Unknown data-style: ~s" data-style-name))
+    (unless (or (null content) (stringp content))
+      (unless style
+	(error "Style is required for all non-string cells (content: ~s)" content))
+      (unless data-style-name
+	(error "data-style mapping is missing from style ~s" style-name)))
+    (with-tag ((*ns-table* "table-cell"))
+      ;; Basic attributes
+      (when (or style-name *current-row-style*)
+	(check-type style-name (or null string))
+	(attr (*ns-table* "style-name") (or style-name *current-row-style*)))
+      (when formula
+	(check-type formula string)
+	(attr (*ns-table* "formula") formula))
+      ;; Add span column/row info
+      (when (or span-columns span-rows)
+	(check-type span-columns (or null (integer 1 *)))
+	(check-type span-rows (or null (integer 1 *)))
+	(attr (*ns-table* "number-columns-spanned") (princ-to-string (or span-columns 1)))
+	(attr (*ns-table* "number-rows-spanned") (princ-to-string (or span-rows 1))))
+      ;; Format the cell according to the content
+      (let ((text (etypecase content
+		    (null nil)
 
-(defun cells (content &rest options)
-  "A convenience function for writing out a set of similarly formatted cells."
+		    (real
+		     (check-type data-style (or number-number-style number-currency-style number-percentage-style))
+		     (attr (*ns-office* "value-type") (ods-value-type data-style))
+		     (attr (*ns-office* "value") (princ-number content))
+		     (format-data data-style content))
+
+		    (local-time:timestamp
+		     (check-type data-style (or number-date-style number-time-style))
+		     (if (typep data-style 'number-date-style)
+			 (progn
+			   (attr (*ns-office* "value-type") "date")
+			   (attr (*ns-office* "date-value") (local-time:format-rfc3339-timestring nil content :use-zulu t :omit-time-part t)))
+			 (progn
+			   (attr (*ns-office* "value-type") "time")
+			   (attr (*ns-office* "time-value") (remove-nsec
+							     (local-time:format-rfc3339-timestring nil content :omit-date-part t :use-zulu t)))))
+		     (format-data data-style content))
+
+		    (keyword
+		     (check-type content (member :true :false))
+		     (attr (*ns-office* "value-type") "boolean")
+		     (attr (*ns-office* "boolean-value") (string-downcase content))
+		     (format-data data-style content))
+
+		    (string
+		     (attr (*ns-office* "value-type") "string")
+		     (let ((fmt (format-data data-style content)))
+		       (unless (string= fmt content)
+			 (attr (*ns-office* "string-value") content))
+		       fmt)))))
+
+	(when text
+	  (with-tag ((*ns-text* "p") :compact t)
+	    (if link
+		(with-tag ((*ns-text* "a"))
+		  (attr (*ns-xlink* "href") link)
+		  (content text))
+		(content text))))))
+
+    (when (and span-columns (> span-columns 1))
+      (dotimes (i (1- span-columns))
+	(tag (*ns-table* "covered-table-cell"))))))
+
+(defun covered-cell (n)
+  "Write out a set of covered cells.
+When a cell spans several columns horizontally, the covered cells are
+written automatically, but when spanning over rows vertically, the
+user of the library is responsible of adding the covered cells where
+the vertical spanning takes place."
+  (dotimes (i n)
+    (tag (*ns-table* "covered-table-cell"))))
+
+(defun cells (&rest content)
+  "A convenience function for writing out a set of cells with no special formatting."
   (dolist (i content)
-    (apply #'cell i options)))
+    (cell i)))
