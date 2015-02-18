@@ -180,11 +180,14 @@ and strings, for example '(:long-hours \":\" :long-minutes \":\" :long-seconds).
   (when suffix
     (tag (*ns-number* "text") suffix)))
 
-(defnumstyle percentage (format &key)
-    (:format format)
+(defnumstyle percentage (format &key prefix (suffix " %"))
+    (:format format :prefix prefix :suffix suffix)
   "Specify a number:percentage-style. The format is the same as for number-number-style."
+  (when prefix
+    (tag (*ns-number* "text") prefix))
   (write-number-number format)
-  (tag (*ns-number* "text") " %"))
+  (when suffix
+    (tag (*ns-number* "text") suffix)))
 
 (defnumstyle text (&key prefix suffix)
     (:prefix prefix :suffix suffix)

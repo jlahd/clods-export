@@ -210,7 +210,7 @@ The following content types are supported:
       (dotimes (i (1- span-columns))
 	(tag (*ns-table* "covered-table-cell"))))))
 
-(defun covered-cell (n)
+(defun covered-cell (&optional n)
   "Write out a set of covered cells.
 When a cell spans several columns horizontally, the covered cells are
 written automatically, but when spanning over rows vertically, the

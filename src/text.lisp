@@ -32,7 +32,7 @@
 	   (zerop (mod x 100))
 	   (<= 100 x 900))))
 
-(defparameter *text-properties*
+(defparameter *text-property-defs*
   (list (list :font-variant *ns-fo* *font-variants*)
 	(list :text-transform *ns-fo* *text-transforms*)
 	(list :color *ns-fo* #'valid-color)
@@ -99,6 +99,9 @@
 	(list :hyphenation-push-char-count *ns-fo* 'integer))
   "The set of text properties supported, with the validation rules for their content.")
 
+(defparameter *text-properties* (mapcar #'first *text-property-defs*)
+  "The set of supported keywords for text-properties.")
+
 (defun write-text-properties (props)
   "Write a list containing text properties into the XML document."
   (flet ((any-value (x)
@@ -108,7 +111,7 @@
 	     (number (princ-number x)))))
     (with-tag ((*ns-style* "text-properties"))
       (loop for (kw data) on props by #'cddr
-	    for (nil ns constr) = (find kw *text-properties* :key #'first)
+	    for (nil ns constr) = (find kw *text-property-defs* :key #'first)
 	    do (check-type kw keyword)
 	    unless ns do (error "unknown text property: ~s" kw)
 	    do (attr (ns (string-downcase kw))

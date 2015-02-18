@@ -24,6 +24,7 @@
       (clods:number-currency-style "n-price" '(:number (:min-integer-digits 1 :decimal-places 2)
 					       :text " "
 					       :symbol "€"))
+      (clods:number-percentage-style "n-perc" '(:min-integer-digits 1 :decimal-places 1))
       (clods:number-date-style "n-date" '(:long-day "." :long-month "." :long-year))
 
       ;; cell styles
@@ -38,6 +39,7 @@
       (clods:cell-style "ce-frac" "ce-normal" text-props-normal :data-style "n-frac")
       (clods:cell-style "ce-weight" "ce-normal" text-props-normal :data-style "n-weight")
       (clods:cell-style "ce-price" "ce-normal" text-props-normal :data-style "n-price")
+      (clods:cell-style "ce-perform" "ce-normal" text-props-normal :data-style "n-perc")
       (clods:cell-style "ce-date" "ce-normal" text-props-normal :data-style "n-date")
 
       ;; column styles
@@ -60,13 +62,14 @@
 	(clods:column :style "co-number" :cell-style "ce-frac")
 	(clods:column :style "co-number" :cell-style "ce-weight")
 	(clods:column :style "co-number" :cell-style "ce-price" :repeat 2)
+	(clods:column :style "co-number" :cell-style "ce-perform")
 	(clods:column :style "co-date" :cell-style "ce-date")
 
 	;; then, add the data row-by-row, starting with headers
 	(clods:with-header-rows ()
 	  (clods:with-row (:repeat 2)) ; two empty rows at top
 	  (clods:with-row (:style "ro-title")
-	    (clods:cell "Product listing" :style "ce-title" :span-columns 9))
+	    (clods:cell "Product listing" :style "ce-title" :span-columns 10))
 	  (clods:with-row ())
 	  (clods:with-row (:style "ro-normal")
 	    (clods:cells nil nil nil nil nil nil)
@@ -75,17 +78,18 @@
 	    (clods:cell "#")
 	    (clods:cell "Title" :style "ce-header")
 	    (clods:cell "Note" :style "ce-header")
-	    (clods:cells "Quantity" "Rating" "Weight" "VAT 0%" "VAT 24%" "Availability")))
+	    (clods:cells "Quantity" "Rating" "Weight" "VAT 0%" "VAT 24%" "Performance" "Availability")))
 
-	(let ((products '(("Product one" nil 42 123/456 12 82.10 "2015-01-01")
-			  ("Product two" "Fragile" 2 0.88 13840.11d0 11.55 "2015-02-01")
-			  ("Product three" "Out of stock" -17 #.pi 0.0000077 191.91 "2015-05-01")
-			  ("Product four" nil "?" "Unknown" "Unknown" "Unknown" "Discontinued"))))
-	  (loop for (title note quantity rating weight price availability) in products
+	(let ((products '(("Product one" nil 42 123/456 12 82.10 0.87 "2015-01-01")
+			  ("Product two" "Fragile" 2 0.88 13840.11d0 11.55 0.44 "2015-02-01")
+			  ("Product three" "Out of stock" -17 #.pi 0.0000077 191.91 1.01 "2015-05-01")
+			  ("Product four" nil "?" "Unknown" "Unknown" "Unknown" 0 "Discontinued"))))
+	  (loop for (title note quantity rating weight price performance availability) in products
 		for id from 1
 		do (clods:with-row (:style "ro-normal")
 		     (clods:cells id title note quantity rating weight price
 				  (if (realp price) (* 1.24 price) price)
+				  performance
 				  (or (ignore-errors (local-time:parse-timestring availability))
 				      availability)))))
 

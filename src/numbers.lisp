@@ -115,7 +115,15 @@
 		  (iter (for i below (- min-denominator-digits (length (princ-to-string den))))
 			(setf den (* den 10)
 			      num (* num 10))))
-		(format nil "~v,'0d/~d" (or min-numerator-digits 0) num den)))
+		(if (and min-integer-digits
+			 (> min-integer-digits 0)
+			 (>= (abs num) den))
+		    (multiple-value-bind (wh fr)
+			(truncate num den)
+		      (format nil "~vd ~v,'0d/~d"
+			      min-integer-digits wh
+			      (or min-numerator-digits 0) (mod fr den) den))
+		    (format nil "~v,'0d/~d" (or min-numerator-digits 0) num den))))
 	     (t
 	      ;; normal
 	      (let* ((neg (alexandria:xor (< num 0) (and display-factor
@@ -203,8 +211,7 @@
   (with-slots (format prefix suffix locale) style
     (concatenate 'string
 		 (or prefix "")
-		 (format-number data format locale)
-		 " %"
+		 (format-number (if (realp data) (* 100 data) data) format locale)
 		 (or suffix ""))))
 
 (defmethod format-data ((style number-text-style) data)
