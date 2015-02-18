@@ -129,13 +129,14 @@ The following content types are supported:
 	 (data-style-name (and style (slot-value style 'data-style)))
 	 (data-style (or (gethash data-style-name *styles*) *default-data-style*)))
     ;; Advance the current column counter
-    (when *current-column*
-      (when (>= (incf (second *current-column*))
-		(col-repeat (first (first *current-column*))))
-	(setf (first *current-column*) (rest (first *current-column*))
-	      (second *current-column*) 0)
-	(unless (first *current-column*)
-	  (setf *current-column* nil))))
+    (dotimes (span (or span-columns 1))
+      (when *current-column*
+	(when (>= (incf (second *current-column*))
+		  (col-repeat (first (first *current-column*))))
+	  (setf (first *current-column*) (rest (first *current-column*))
+		(second *current-column*) 0)
+	  (unless (first *current-column*)
+	    (setf *current-column* nil)))))
     ;; Verify that a valid style has been specified, and there is a
     ;; mapping to a data style
     (when (and style-name (not style))
