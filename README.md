@@ -118,7 +118,7 @@ as "1 234 567,89", would be defined as follows:
 
 Text property definitions are lists containing pairs of keywords and
 values.  The set of supported keywords is listed in
-`clods:*text-properties*` and they map directly to those defined (in the OpenDocument specification)[http://docs.oasis-open.org/office/v1.2/os/OpenDocument-v1.2-os-part1.html#__RefHeading__1416402_253892949].
+`clods:*text-properties*` and they map directly to those defined [in the OpenDocument specification](http://docs.oasis-open.org/office/v1.2/os/OpenDocument-v1.2-os-part1.html#__RefHeading__1416402_253892949).
 
 ### Number formatting
 
