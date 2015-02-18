@@ -79,12 +79,15 @@
 
 	(let ((products '(("Product one" nil 42 123/456 12 82.10 "2015-01-01")
 			  ("Product two" "Fragile" 2 0.88 13840.11d0 11.55 "2015-02-01")
-			  ("Product three" "Out of stock" -17 #.pi 0.0000077 191.91 "2015-05-01"))))
+			  ("Product three" "Out of stock" -17 #.pi 0.0000077 191.91 "2015-05-01")
+			  ("Product four" nil "?" "Unknown" "Unknown" "Unknown" "Discontinued"))))
 	  (loop for (title note quantity rating weight price availability) in products
 		for id from 1
 		do (clods:with-row (:style "ro-normal")
-		     (clods:cells id title note quantity rating weight
-				  price (* 1.24 price) (local-time:parse-timestring availability)))))
+		     (clods:cells id title note quantity rating weight price
+				  (if (realp price) (* 1.24 price) price)
+				  (or (ignore-errors (local-time:parse-timestring availability))
+				      availability)))))
 
 	(clods:with-row ())
 	(clods:with-row (:style "ro-normal")

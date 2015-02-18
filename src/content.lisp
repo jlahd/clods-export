@@ -191,8 +191,9 @@ The following content types are supported:
 
 		    (string
 		     (attr (*ns-office* "value-type") "string")
-		     (let ((fmt (format-data data-style content)))
-		       (unless (string= fmt content)
+		     (let ((fmt (and (typep data-style 'number-text-style)
+				     (format-data data-style content))))
+		       (unless (and fmt (string= fmt content))
 			 (attr (*ns-office* "string-value") content))
 		       fmt)))))
 
