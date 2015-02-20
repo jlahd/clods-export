@@ -1,10 +1,7 @@
 (cl:defpackage :clods-export
   (:nicknames #:clods)
-  (:use #:cl #:iterate #:xmlw)
+  (:use #:cl #:iterate #:cxml)
   (:export
-   ;; namespaces
-   #:*ns-table* #:*ns-office* #:*ns-text* #:*ns-style* #:*ns-fo*
-   #:*ns-of* #:*ns-xlink* #:*ns-number* #:*ns-svg* #:*ns-meta* #:*ns-dc*
    #:with-spreadsheet
    #:make-locale
    #:using-fonts #:font #:*font-generic-families* #:*font-styles* #:*font-weights* #:*font-variants* #:*font-sizes* #:*font-stretches*

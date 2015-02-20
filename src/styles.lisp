@@ -31,7 +31,7 @@ automatically."
      (unless (or (eq *sheet-state* :start)
 		 (eq *sheet-state* :fonts-defined))
        (error "with-styles must appear as a child of a with-spreadsheet form, in the beginning or just after a with-fonts form"))
-     (with-tag ((*ns-office* "automatic-styles"))
+     (with-element* ("office" "automatic-styles")
        (let ((*sheet-state* :automatic-styles)
 	     (*default-locale* (or ,locale *default-locale*)))
 	 ,@body)
@@ -74,14 +74,14 @@ Type of the number (normal/scientific/fraction) is deduced from the flags."
 				       (check-type data integer)
 				       (setf not-normal t not-sci t)
 				       (princ-to-string data)))))))
-    (with-tag ((*ns-number* (cond ((not not-normal) "number")
-				  (normal-only (error "invalid number specification: ~s" spec))
-				  ((not not-sci) "scientific-number")
-				  ((not not-frac) "fraction")
-				  ((error "conflicting number specification: ~s" spec)))))
+    (with-element* ("number" (cond ((not not-normal) "number")
+				   (normal-only (error "invalid number specification: ~s" spec))
+				   ((not not-sci) "scientific-number")
+				   ((not not-frac) "fraction")
+				   ((error "conflicting number specification: ~s" spec))))
       (dolist (i attrs)
-	(attr (*ns-number* (string-downcase (first i)))
-	      (second i))))))
+	(attribute* "number" (string-downcase (first i))
+		    (second i))))))
 
 (defmacro defnumstyle (name (&rest args) (&rest init-list) &body body)
   "Helper macro for defining number styles."
@@ -90,10 +90,10 @@ Type of the number (normal/scientific/fraction) is deduced from the flags."
        ,(and (stringp (first body))
 	     (first body))
        (ensure-style-state)
-       (with-tag ((*ns-number* ,(concatenate 'string (string-downcase name) "-style")))
-	 (attr (*ns-style* "name") style-name)
+       (with-element* ("number" ,(concatenate 'string (string-downcase name) "-style"))
+	 (attribute* "style" "name" style-name)
 	 (when (locale-country locale)
-	   (attr (*ns-number* "country") (locale-country locale)))
+	   (attribute* "number" "country" (locale-country locale)))
 	 (write-text-properties text-properties)
 	 ,@body)
        (when (gethash style-name *styles*)
@@ -107,10 +107,12 @@ Type of the number (normal/scientific/fraction) is deduced from the flags."
   "Specify a number:boolean-style.  The value is formatted as the
 strings given in the true and false arguments."
   (when prefix
-    (tag (*ns-number* "text") prefix))
-  (tag (*ns-number* "boolean"))
+    (with-element* ("number" "text")
+      (text prefix)))
+  (with-element* ("number" "boolean"))
   (when suffix
-    (tag (*ns-number* "text") suffix)))
+    (with-element* ("number" "text")
+      (text suffix))))
 
 (defnumstyle currency (format &key)
     (:format format)
@@ -125,15 +127,15 @@ example, '(:number (:min-integer-digits 1 :decimal-places 2) :text \" \" :symbol
     (error "invalid currency style format ~s" format))
   (iter (for (kw data) on format by #'cddr)
 	(ecase kw
-	  (:symbol (tag (*ns-number* "currency-symbol") data))
-	  (:text (tag (*ns-number* "text") data))
+	  (:symbol (with-element* ("number" "currency-symbol") (text data)))
+	  (:text (with-element* ("number" "text") (text data)))
 	  (:number (write-number-number data)))))
 
 (defun date-or-time-style (date-p format)
   "Helper function for writing out a date or time style."
   (dolist (i format)
     (etypecase i
-      (string (tag (*ns-number* "text") i))
+      (string (with-element* ("number" "text") (text i)))
       (keyword (let* ((sym (symbol-name i))
 		      (dash (position #\- sym))
 		      (style (and dash (string-downcase (subseq sym 0 dash))))
@@ -150,7 +152,8 @@ example, '(:number (:min-integer-digits 1 :decimal-places 2) :text \" \" :symbol
 				       (and (string/= style "am")
 					    (string= field "pm")))))
 		   (error "invalid date/time field: ~s" i))
-		 (with-tag ((*ns-number* field)) (attr (*ns-number* "style") style)))))))
+		 (with-element* ("number" field)
+		   (attribute* "number" "style" style)))))))
 
 (defnumstyle date (format &key)
     (:format format)
@@ -175,28 +178,34 @@ and strings, for example '(:long-hours \":\" :long-minutes \":\" :long-seconds).
 * :min-exponent-digits for scientific styles,
 * :denominator-value :min-denominator-digits :min-numerator-digits for fraction styles."
   (when prefix
-    (tag (*ns-number* "text") prefix))
+    (with-element* ("number" "text")
+      (text prefix)))
   (write-number-number format :normal-only nil)
   (when suffix
-    (tag (*ns-number* "text") suffix)))
+    (with-element* ("number" "text")
+      (text suffix))))
 
 (defnumstyle percentage (format &key prefix (suffix " %"))
     (:format format :prefix prefix :suffix suffix)
   "Specify a number:percentage-style. The format is the same as for number-number-style."
   (when prefix
-    (tag (*ns-number* "text") prefix))
+    (with-element* ("number" "text")
+      (text prefix)))
   (write-number-number format)
   (when suffix
-    (tag (*ns-number* "text") suffix)))
+    (with-element* ("number" "text")
+      (text suffix))))
 
 (defnumstyle text (&key prefix suffix)
     (:prefix prefix :suffix suffix)
   "Specify a number:text-style. Used for simple text content."
   (when prefix
-    (tag (*ns-number* "text") prefix))
-  (tag (*ns-number* "text-content"))
+    (with-element* ("number" "text")
+      (text prefix)))
+  (with-element* ("number" "text-content"))
   (when suffix
-    (tag (*ns-number* "text") suffix)))
+    (with-element* ("number" "text")
+      (text suffix))))
 
 (defmacro defstyle (name (&rest args) &body body)
   "Helper macro for style:style generators."
@@ -205,19 +214,19 @@ and strings, for example '(:long-hours \":\" :long-minutes \":\" :long-seconds).
      ,(and (stringp (first body))
 	   (first body))
      (ensure-style-state)
-     (with-tag ((*ns-style* "style"))
-       (attr (*ns-style* "name") name)
-       (attr (*ns-style* "family") ,(if (listp name)
+     (with-element* ("style" "style")
+       (attribute* "style" "name" name)
+       (attribute* "style" "family" ,(if (listp name)
 					(second name)
 					(string-downcase (subseq (symbol-name name) 0 (position #\- (symbol-name name))))))
        (when parent-style
-	 (attr (*ns-style* "parent-style-name") parent-style))
+	 (attribute* "style" "parent-style-name" parent-style))
        (when next-style
-	 (attr (*ns-style* "next-style-name") next-style))
+	 (attribute* "style" "next-style-name" next-style))
        (when data-style
-	 (attr (*ns-style* "data-style-name") data-style))
+	 (attribute* "style" "data-style-name" data-style))
        (when percentage-data-style
-	 (attr (*ns-style* "percentage-data-style-name") percentage-data-style))
+	 (attribute* "style" "percentage-data-style-name" percentage-data-style))
        ,@body)
      (when (gethash name *styles*)
        (warn "Overriding style ~s with a new definition." name))
@@ -229,7 +238,7 @@ and strings, for example '(:long-hours \":\" :long-minutes \":\" :long-seconds).
 (defun write-background (background)
   "Helper function for writing the background color specification."
   (when background
-    (attr (*ns-fo* "background-color")
+    (attribute* "fo" "background-color"
 	  (if (eq background :transparent)
 	      "transparent"
 	      (if (valid-color background)
@@ -238,41 +247,41 @@ and strings, for example '(:long-hours \":\" :long-minutes \":\" :long-seconds).
 
 (defstyle table-style (&key width rel-width align background)
   "Generator for <style:style style:family=\"table\">."
-  (with-tag ((*ns-style* "table-properties"))
+  (with-element* ("style" "table-properties")
     (when width
       (check-type width string)
-      (attr (*ns-style* "width") width))
+      (attribute* "style" "width" width))
     (when rel-width
       (check-type rel-width string)
-      (attr (*ns-style* "rel-width") rel-width))
+      (attribute* "style" "rel-width" rel-width))
     (when align
       (check-type align (member :left :center :right :margins))
-      (attr (*ns-table* "align") (string-downcase align)))
+      (attribute* "table" "align" (string-downcase align)))
     (write-background background)))
 
 (defstyle (column-style "table-column") (&key width rel-width (use-optimal-width nil opt-width-supplied))
   "Generator for <style:style style:family=\"table-column\">."
-  (with-tag ((*ns-style* "table-column-properties"))
+  (with-element* ("style" "table-column-properties")
     (when width
       (check-type width string)
-      (attr (*ns-style* "column-width") width))
+      (attribute* "style" "column-width" width))
     (when rel-width
       (check-type rel-width string)
-      (attr (*ns-style* "rel-column-width") rel-width))
+      (attribute* "style" "rel-column-width" rel-width))
     (when opt-width-supplied
-      (attr (*ns-style* "use-optimal-column-width") (if use-optimal-width "true" "false")))))
+      (attribute* "style" "use-optimal-column-width" (if use-optimal-width "true" "false")))))
 
 (defstyle (row-style "table-row") (&key height min-height (use-optimal-height nil opt-height-supplied) background)
   "Generator for <style:style style:family=\"table-row\">."
-  (with-tag ((*ns-style* "table-row-properties"))
+  (with-element* ("style" "table-row-properties")
     (when height
       (check-type height string)
-      (attr (*ns-style* "row-height") height))
+      (attribute* "style" "row-height" height))
     (when min-height
       (check-type min-height string)
-      (attr (*ns-style* "min-row-height") min-height))
+      (attribute* "style" "min-row-height" min-height))
     (when opt-height-supplied
-      (attr (*ns-style* "use-optimal-row-height") (if use-optimal-height "true" "false")))
+      (attribute* "style" "use-optimal-row-height" (if use-optimal-height "true" "false")))
     (write-background background)))
 
 (defstyle (cell-style "table-cell") (text-properties
@@ -280,13 +289,13 @@ and strings, for example '(:long-hours \":\" :long-minutes \":\" :long-seconds).
 				     border border-left border-top border-right border-bottom
 				     (wrap nil wrap-supplied))
   "Generator for <style:style style:family=\"table-cell\">."
-  (with-tag ((*ns-style* "table-cell-properties"))
+  (with-element* ("style" "table-cell-properties")
     (when vertical-align
       (check-type vertical-align (member :top :middle :bottom :automatic))
-      (attr (*ns-style* "vertical-align") (string-downcase vertical-align)))
+      (attribute* "style" "vertical-align" (string-downcase vertical-align)))
     (when text-align-source
       (check-type text-align-source (member :fix :value-type))
-      (attr (*ns-style* "text-align-source") (string-downcase text-align-source)))
+      (attribute* "style" "text-align-source" (string-downcase text-align-source)))
     (write-background background)
     (flet ((write-border (dir which)
 	     (let ((val (or which border)))
@@ -297,20 +306,20 @@ and strings, for example '(:long-hours \":\" :long-minutes \":\" :long-seconds).
 			      (find (second val) *line-styles*)
 			      (valid-color (third val)))
 		   (error "invalid border definition: ~s" val))
-		 (attr (*ns-fo* (format nil "border-~a" dir))
-		       (format nil "~a ~a ~a"
-			       (string-downcase (first val))
-			       (string-downcase (second val))
-			       (third val)))))))
+		 (attribute* "fo" (format nil "border-~a" dir)
+			     (format nil "~a ~a ~a"
+				     (string-downcase (first val))
+				     (string-downcase (second val))
+				     (third val)))))))
       (write-border "left" border-left)
       (write-border "top" border-top)
       (write-border "right" border-right)
       (write-border "bottom" border-bottom))
     (when wrap-supplied
-      (attr (*ns-fo* "wrap-option") (if wrap "wrap" "no-wrap"))))
+      (attribute* "fo" "wrap-option" (if wrap "wrap" "no-wrap"))))
   (when text-properties
     (write-text-properties text-properties))
   (when horizontal-align
     (check-type horizontal-align (member :start :center :end :justify :left :right))
-    (with-tag ((*ns-style* "paragraph-properties"))
-      (attr (*ns-fo* "text-align") (string-downcase horizontal-align)))))
+    (with-element* ("style" "paragraph-properties")
+      (attribute* "fo" "text-align" (string-downcase horizontal-align)))))

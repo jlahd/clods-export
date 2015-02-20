@@ -10,7 +10,7 @@
   :license "MIT"
   :description "Common Lisp OpenDocument spreadsheet export library"
   :encoding :utf-8
-  :depends-on (alexandria iterate local-time cl-xmlw zip cl-fad)
+  :depends-on (alexandria iterate local-time cxml zip cl-fad)
   :components
   ((:module clods
     :pathname "src"
