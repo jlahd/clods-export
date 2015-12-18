@@ -15,11 +15,10 @@
   ((:module clods
     :pathname "src"
     :components ((:file "package")
-		 (:file "fix-zip")
 		 (:file "namespaces")
 		 (:file "util")
 		 (:file "locale")
-		 (:file "ods" :depends-on ("package" "fix-zip" "namespaces" "util"))
+		 (:file "ods" :depends-on ("package" "namespaces" "util"))
 		 (:file "fonts" :depends-on ("ods"))
 		 (:file "text" :depends-on ("ods" "fonts"))
 		 (:file "numbers" :depends-on ("ods" "locale"))
