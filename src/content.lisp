@@ -200,12 +200,25 @@ The following content types are supported:
 		       fmt)))))
 
 	(when text
-	  (with-element* ("text" "p")
-	    (if link
-		(with-element* ("text" "a")
-		  (attribute* "xlink" "href" link)
-		  (text text))
-		(text text))))))
+	  (if (position #\newline text)
+	      ;; multi-line
+	      (loop for start = (or (and end (1+ end)) 0)
+		    for end = (position #\newline text :start start)
+		    for sub = (subseq text start end)
+		    do (with-element* ("text" "p")
+			 (if link
+			     (with-element* ("text" "a")
+			       (attribute* "xlink" "href" link)
+			       (text sub))
+			     (text sub)))
+		    while end)
+	      ;; single-line
+	      (with-element* ("text" "p")
+		(if link
+		    (with-element* ("text" "a")
+		      (attribute* "xlink" "href" link)
+		      (text text))
+		    (text text)))))))
 
     (when (and span-columns (> span-columns 1))
       (dotimes (i (1- span-columns))
