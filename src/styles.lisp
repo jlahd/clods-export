@@ -287,7 +287,7 @@ and strings, for example '(:long-hours \":\" :long-minutes \":\" :long-seconds).
 (defstyle (cell-style "table-cell") (text-properties
 				     &key horizontal-align vertical-align text-align-source background
 				     border border-left border-top border-right border-bottom
-				     (wrap nil wrap-supplied))
+				     (wrap nil wrap-supplied) rotation-angle)
   "Generator for <style:style style:family=\"table-cell\">."
   (with-element* ("style" "table-cell-properties")
     (when vertical-align
@@ -316,7 +316,10 @@ and strings, for example '(:long-hours \":\" :long-minutes \":\" :long-seconds).
       (write-border "right" border-right)
       (write-border "bottom" border-bottom))
     (when wrap-supplied
-      (attribute* "fo" "wrap-option" (if wrap "wrap" "no-wrap"))))
+      (attribute* "fo" "wrap-option" (if wrap "wrap" "no-wrap")))
+    (when rotation-angle
+      (check-type rotation-angle (or string number))
+      (attribute* "style" "rotation-angle" (princ-to-string rotation-angle))))
   (when text-properties
     (write-text-properties text-properties))
   (when horizontal-align

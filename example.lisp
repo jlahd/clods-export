@@ -32,6 +32,7 @@
       (clods:cell-style "ce-title" "ce-normal" text-props-title :horizontal-align :center)
       (clods:cell-style "ce-header" "ce-normal" text-props-header :border-bottom '(:thin :solid "#000000"))
       (clods:cell-style "ce-header-r" "ce-normal" text-props-header :border-bottom '(:thin :solid "#000000") :horizontal-align :end)
+      (clods:cell-style "ce-header-vert" "ce-normal" text-props-header :border-bottom '(:thin :solid "#000000") :horizontal-align :center :rotation-angle 90)
       (clods:cell-style "ce-header-group" "ce-normal" text-props-header :horizontal-align :center)
       (clods:cell-style "ce-link" "ce-normal" text-props-link)
       (clods:cell-style "ce-int" "ce-normal" text-props-normal :data-style "n-int")
@@ -41,12 +42,14 @@
       (clods:cell-style "ce-price" "ce-normal" text-props-normal :data-style "n-price")
       (clods:cell-style "ce-perform" "ce-normal" text-props-normal :data-style "n-perc")
       (clods:cell-style "ce-date" "ce-normal" text-props-normal :data-style "n-date")
+      (clods:cell-style "ce-center" "ce-normal" text-props-normal :horizontal-align :center)
 
       ;; column styles
       (clods:column-style "co-id" nil :width "1.0cm")
       (clods:column-style "co-name" nil :width "5.0cm")
       (clods:column-style "co-number" nil :width "3.0cm")
       (clods:column-style "co-date" nil :width "4.0cm")
+      (clods:column-style "co-vert" nil :width "0.8cm")
 
       ;; row styles
       (clods:row-style "ro-normal" nil :height "18pt" :use-optimal-height t)
@@ -64,12 +67,14 @@
 	(clods:column :style "co-number" :cell-style "ce-price" :repeat 2)
 	(clods:column :style "co-number" :cell-style "ce-perform")
 	(clods:column :style "co-date" :cell-style "ce-date")
+	(clods:column :style "co-vert" :cell-style "ce-center")
 
 	;; then, add the data row-by-row, starting with headers
 	(clods:with-header-rows ()
 	  (clods:with-row (:repeat 2)) ; two empty rows at top
 	  (clods:with-row (:style "ro-title")
-	    (clods:cell "Product listing" :style "ce-title" :span-columns 10))
+	    (clods:cell "Product listing" :style "ce-title" :span-columns 10)
+	    (clods:cell "Any good?" :style "ce-header-vert" :span-rows 4))
 	  (clods:with-row ())
 	  (clods:with-row (:style "ro-normal")
 	    (clods:cells nil nil nil nil nil nil)
@@ -80,18 +85,19 @@
 	    (clods:cell "Note" :style "ce-header")
 	    (clods:cells "Quantity" "Rating" "Weight" "VAT 0%" "VAT 24%" "Performance" "Availability")))
 
-	(let ((products '(("Product one" nil 42 123/456 12 82.10 0.87 "2015-01-01")
-			  ("Product two" "Fragile" 2 0.88 13840.11d0 11.55 0.44 "2015-02-01")
-			  ("Product three" "Out of stock" -17 #.pi 0.0000077 191.91 1.01 "2015-05-01")
-			  ("Product four" nil "?" "Unknown" "Unknown" "Unknown" 0 "Discontinued"))))
-	  (loop for (title note quantity rating weight price performance availability) in products
+	(let ((products '(("Product one" nil 42 123/456 12 82.10 0.87 "2015-01-01" "Y")
+			  ("Product two" "Fragile" 2 0.88 13840.11d0 11.55 0.44 "2015-02-01" "N")
+			  ("Product three" "Out of stock" -17 #.pi 0.0000077 191.91 1.01 "2015-05-01" "Y")
+			  ("Product four" nil "?" "Unknown" "Unknown" "Unknown" 0 "Discontinued" "N"))))
+	  (loop for (title note quantity rating weight price performance availability any-good) in products
 		for id from 1
 		do (clods:with-row (:style "ro-normal")
 		     (clods:cells id title note quantity rating weight price
 				  (if (realp price) (* 1.24 price) price)
 				  performance
 				  (or (ignore-errors (local-time:parse-timestring availability))
-				      availability)))))
+				      availability)
+				  any-good))))
 
 	(clods:with-row ())
 	(clods:with-row (:style "ro-normal")

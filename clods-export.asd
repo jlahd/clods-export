@@ -4,7 +4,7 @@
 
 (asdf:defsystem clods-export
   :name "clods-export"
-  :version "1.0.1"
+  :version "1.0.2"
   :author "Jussi Lahdenniemi <jussi@lahdenniemi.fi>"
   :maintainer "Jussi Lahdenniemi <jussi@lahdenniemi.fi>"
   :license "MIT"

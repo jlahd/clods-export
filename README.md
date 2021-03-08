@@ -234,6 +234,7 @@ The available keyword arguments are:
   and *color* is a string color definition "#xxxxxx".  Specifying
   `:border` applies the same border to all edges.
 * `:wrap` takes a generalized boolean defining if the cell's contents wrap or not.
+* `:rotation-angle` takes an angle as a number or a string.
 
 ### Row styles
 
